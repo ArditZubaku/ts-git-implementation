@@ -262,7 +262,32 @@ switch (command) {
     process.stdout.write(treeHash);
     break;
   }
+  case Commands.CommitTree: {
+    // The format of the commit object in Git:
+    // commit <size>\0
+    // tree <tree-sha>
+    // parent <parent-sha>
+    // author <name> <email> <timestamp>
+    // committer <name> <email> <timestamp>
+    
+    // <message>
+    // We don't care about the positional args
+    const [_command, treeSha, _dashP, commitSha, _dashM, message] = args;
 
+    const name = "ArditZubaku"
+    const email = "zubakuardit@gmail.com";
+    const timestamp = Date.now();
+
+    // Building the content by following te above format
+    const content = Buffer.from(`tree ${treeSha}\nparent ${commitSha}\nauthor ${name} ${email} ${timestamp}\ncommittter ${name} ${email} ${timestamp}\n\n${message}\n`);
+
+    const header = Buffer.from(`commit ${content.byteLength}\0`);
+    const { hash, compressedObject } = getCompressedObjectAndHash(header, content);
+
+    // Write commit object to .git/objects
+    process.stdout.write(writeObject(hash, compressedObject));
+    break;
+  }
   default:
     throw new Error(`Unknown command ${command}`);
 }
