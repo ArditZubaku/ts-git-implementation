@@ -5,7 +5,6 @@ import * as crypto from "crypto";
 
 const args = process.argv.slice(2);
 const command = args.at(0);
-const hashOrPath = args.pop();
 
 const Commands = {
   Init: "init",
@@ -13,6 +12,7 @@ const Commands = {
   HashObject: "hash-object",
   LsTree: "ls-tree",
   WriteTree: "write-tree",
+  CommitTree: "commit-tree",
 } as const;
 
 const Paths = {
@@ -184,29 +184,34 @@ switch (command) {
     fs.writeFileSync(".git/HEAD", "ref: refs/heads/main\n");
     console.log("Initialized git directory");
     break;
-  case Commands.CatFile:
-    if (hashOrPath) {
-      const decompressedBlob = getDecompressedObject(hashOrPath);
+  case Commands.CatFile: {
+    const hash = args.pop();
+    if (hash) {
+      const decompressedBlob = getDecompressedObject(hash);
       const { content } = getContentAndHeader(decompressedBlob);
       process.stdout.write(content);
     } else {
       throw new Error("No hash provided!");
     }
     break;
-  case Commands.HashObject:
+  }
+  case Commands.HashObject: {
     const shallWrite = args.indexOf("-w") !== -1;
-    if (hashOrPath) {
-      const hash = hashObject(shallWrite, hashOrPath, "hex");
+    const path = args.pop();
+    if (path) {
+      const hash = hashObject(shallWrite, path, "hex");
       // Some terminals (especially `zsh` and custom shell configurations) may display a % when no newline (\n) is present at the end of the output.
       process.stdout.write(hash as string);
     } else {
       throw new Error("No target file provided!");
     }
     break;
-  case Commands.LsTree:
+  }
+  case Commands.LsTree: {
     const namesOnly = args.indexOf("--name-only");
-    if (hashOrPath) {
-      const decompressedObject = getDecompressedObject(hashOrPath);
+    const hash = args.pop();
+    if (hash) {
+      const decompressedObject = getDecompressedObject(hash);
       const entries: {
         mode: number;
         type: string;
@@ -250,11 +255,14 @@ switch (command) {
       throw new Error("No hash provided!");
     }
     break;
-  case Commands.WriteTree:
+  }
+  case Commands.WriteTree: {
     // Create tree objects recursively starting from current directory
     const treeHash = writeTree(".");
     process.stdout.write(treeHash);
     break;
+  }
+
   default:
     throw new Error(`Unknown command ${command}`);
 }
